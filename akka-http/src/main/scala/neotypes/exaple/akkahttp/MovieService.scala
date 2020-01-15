@@ -1,6 +1,6 @@
 package neotypes.exaple.akkahttp
 
-import neotypes.Driver
+import neotypes.{Driver, Session}
 import neotypes.exaple.akkahttp.MovieService.MovieToActor
 import neotypes.implicits._
 
@@ -39,6 +39,26 @@ class MovieService(driver: Driver[Future]) {
 
         Graph(nodes, rels)
       }
+  }
+
+  def incrementMovieYear(readSession: Session[Future], writeSession: Session[Future]) = {
+    for{
+      firstRead <- c"""MATCH (movie:Movie {title: 'The Matrix'}) return movie.released""".query[Int].single(readSession)
+      _ <- c"""MATCH (movie:Movie {title: 'The Matrix'}) SET movie.released = ${firstRead + 1}""".query[Unit].execute(writeSession)
+      secondRead <- c"""MATCH (movie:Movie {title: 'The Matrix'}) return movie.released""".query[Int].single(readSession)
+    } yield secondRead
+  }
+
+  def dangerMethod(): Future[Int] = {
+    driver.readSession{
+      readSess =>
+        driver.writeSession{
+          writeSession =>
+            //Uncomment below to share session across multiple threads
+            //incrementMovieYear(readSess, writeSession)
+            incrementMovieYear(readSess, writeSession)
+        }
+    }
   }
 
   private[this] def toNodes(movieToActor: MovieToActor): Seq[Node] =

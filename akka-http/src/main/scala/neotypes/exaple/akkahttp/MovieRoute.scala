@@ -44,6 +44,12 @@ class MovieRoute(movieService: MovieService)(implicit executionContext: Executio
     get {
       getFromResource("index.html")
     }
+  } ~ pathPrefix("danger") {
+    pathEndOrSingleSlash {
+      get {
+        complete(movieService.dangerMethod().map(res => OK -> res.asJson))
+      }
+    }
   }
 
 }
